@@ -1,82 +1,73 @@
-import {readFile, writeFile, mkdir, cp, rm} from 'node:fs/promises';
+import {readFile, writeFile, mkdir, cp, rm, stat} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
+import os from 'node:os';
+import {esc, visible, nav, pageInfo, shell, home, contents, detail, icon} from './templates.mjs';
+export {esc, visible};
 export const root = fileURLToPath(new URL('../', import.meta.url));
-export const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export const visible = list => list.filter(x => x.published === true);
+
 export function validate(d) {
-  for (const key of ['photos','socials','interests','projects','organisations','writeups','timeline','travel','services','education']) if (!Array.isArray(d[key])) throw Error(`${key} must be an array`);
+  for (const key of ['photos','socials','interests','projects','organisations','writeups','library','timeline','travel','services','education']) if (!Array.isArray(d[key])) throw Error(`${key} must be an array`);
   if (d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) throw Error('Invalid email');
-  for (const key of ['projects','writeups','travel']) {
+  for (const key of ['projects','writeups','travel','library']) {
     const seen = new Set();
     for (const item of d[key]) {
       if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item.slug) || seen.has(item.slug)) throw Error(`Invalid or duplicate ${key} slug`);
       seen.add(item.slug);
     }
   }
-  for (const items of Object.values(d).filter(Array.isArray)) for (const item of items) {
-    if (typeof item !== 'object') continue;
-    for (const field of ['url','demo','repository']) if (item[field] && !/^https:\/\//.test(item[field])) throw Error(`${field} requires HTTPS`);
-    if (item.image && (!/^assets\/images\/[\w./-]+$/.test(item.image) || item.image.includes('..'))) throw Error('Image must live in assets/images');
-    if (item.image && !item.alt) throw Error('Images need alt text');
+  // Sources and photos may be nested inside article sections.
+  function inspect(item) {
+    if (!item || typeof item !== 'object') return;
+    if (Array.isArray(item)) return item.forEach(inspect);
+    for (const field of ['url','demo','repository']) if (item[field]) {
+      let url;
+      try { url = new URL(item[field]); } catch { throw Error(`${field} requires a valid HTTPS URL`); }
+      if (url.protocol !== 'https:' || url.username || url.password) throw Error(`${field} requires HTTPS without credentials`);
+    }
+    if (item.image && (!/^assets\/images\/[\w./-]+\.(?:png|jpe?g|webp|avif)$/i.test(item.image) || item.image.includes('..'))) throw Error('Images must be local raster files in assets/images');
+    if (item.image && !item.alt?.trim()) throw Error('Images need alt text');
+    if (item.rating !== undefined && (!Number.isFinite(item.rating) || item.rating < 0 || item.rating > 5)) throw Error('Rating must be between 0 and 5');
+    for (const key of ['photos','sections','sources','bullets','indicators']) if (item[key] !== undefined && !Array.isArray(item[key])) throw Error(`${key} must be an array`);
+    Object.values(item).forEach(inspect);
   }
-  for (const t of d.travel) if (!Number.isFinite(t.lat) || !Number.isFinite(t.lon) || Math.abs(t.lat)>90 || Math.abs(t.lon)>180) throw Error('Invalid coordinates');
+  inspect(d);
+  for (const t of d.travel) {
+    if (!Number.isFinite(t.lat) || !Number.isFinite(t.lon) || Math.abs(t.lat)>90 || Math.abs(t.lon)>180) throw Error('Invalid coordinates');
+    if (!/^[A-Z]{3}$/.test(t.countryCode || '')) throw Error('Travel needs an ISO alpha-3 countryCode');
+  }
   for (const t of d.timeline) if (!/^\d{4}-\d{2}-\d{2}$/.test(t.date) || Number.isNaN(Date.parse(t.date))) throw Error('Timeline date must be ISO');
 }
-const nav = [['index','My little world'],['projects','Projects'],['organisations','Organisations'],['writeups','Writeups'],['timeline','Timeline'],['travel','Travel'],['freelance','Freelance'],['education','Education']];
-const pageInfo = {
- projects:['01 / THE WORKSHOP','Ideas with a life<br>of their own.','Experiments, side quests, things made out of curiosity.','project'],
- organisations:['02 / IN GOOD COMPANY','Things built<br><em>together.</em>','The ventures, communities and people that become part of the story.','organisation'],
- writeups:['03 / MARGIN NOTES','A thought,<br>then another.','A quiet corner for essays, observations and unfinished questions.','writeup'],
- timeline:['04 / THE LONG WAY ROUND','Life, in<br><em>chapters.</em>','A winding path through work, learning, places and little turning points.','milestone'],
- travel:['05 / SOMEWHERE ELSE','Places stay<br>with you.','An atlas of moments, detours and stories brought home.','journey'],
- freelance:['06 / LET’S MAKE SOMETHING','An idea looking<br>for company?','A place for collaborations, commissions and interesting possibilities.','service'],
- education:['07 / ALWAYS A STUDENT','Still curious.<br><em>Still learning.</em>','A growing record of classrooms, courses and discoveries.','learning record']
-};
-const empty = (title,copy,symbol='✳') => `<div class="empty"><span class="empty-symbol" aria-hidden="true">${symbol}</span><div><h2>${title}</h2><p>${copy}</p></div><span class="hand">room to grow ↗</span></div>`;
-const photo = (item,base='') => item.image ? `<img src="${base}${esc(item.image)}" alt="${esc(item.alt)}" loading="lazy">` : `<div class="cover-art" aria-hidden="true"><span>✳</span><i>an idea in the making</i></div>`;
-const external = (url,label) => url ? `<a class="text-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label} ↗</a>` : '';
-const paragraphs = text => String(text||'').split(/\n\s*\n/).filter(Boolean).map(p=>`<p>${esc(p)}</p>`).join('');
-const filters = items => `<div class="filters" role="group" aria-label="Filter by category"><button class="selected" data-filter="all" aria-pressed="true">Everything</button>${[...new Set(items.map(x=>x.category).filter(Boolean))].map(c=>`<button data-filter="${esc(c)}" aria-pressed="false">${esc(c)}</button>`).join('')}</div>`;
-function shell(d,page,body,base='',title='') {
- return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${esc(d.intro)}"><meta name="theme-color" content="#f8f5ed"><title>${esc(title || (page==='index'?d.title:nav.find(n=>n[0]===page)?.[1]))} · ${esc(d.name||'The personal archive')}</title><link rel="stylesheet" href="${base}assets/style.css"><script type="module" src="${base}assets/app.js"></script></head><body class="page-${page}"><a class="skip" href="#main">Skip to content</a><header><a class="brand" href="${base}index.html" aria-label="Home"><span class="brand-flower" aria-hidden="true">✳</span><span>${esc(d.name||'a little world')}<small>THE PERSONAL ARCHIVE</small></span></a><button class="menu-toggle" aria-expanded="false" aria-controls="navigation">Explore +</button><nav id="navigation" aria-label="Main navigation">${nav.map(([id,label])=>`<a href="${base}${id}.html" ${id===page?'aria-current="page"':''}>${label}</a>`).join('')}</nav></header><main id="main">${body}</main><footer><a class="footer-brand" href="${base}index.html">A life. A work in progress. <span>✳</span></a><div>Made of curiosity & a few happy detours.<br><a href="${base}index.html#contact">Say hello ↗</a></div><a href="#main">Back to top ↑</a></footer><dialog id="lightbox"><button class="close-dialog" aria-label="Close photo">×</button><img alt=""><p></p></dialog></body></html>`;
-}
-function home(d) {
- const images=visible(d.photos);
- return `<section class="home-hero"><div class="hero-copy"><p class="eyebrow"><span class="dot"></span> A PERSONAL CORNER OF THE INTERNET</p><h1>A little bit<br>of <em>everything.</em><svg class="underline" viewBox="0 0 400 25" aria-hidden="true"><path d="M3 16 Q190 -2 390 13 M40 23 Q200 8 350 20"/></svg></h1><p class="lede">${esc(d.intro)}</p><a class="button" href="#explore">Wander around <span>↘</span></a><span class="hand hero-note">no particular order required</span></div><div class="scrapbook" aria-label="Personal photo space"><div class="orbit" aria-hidden="true"></div><span class="spark spark-one" aria-hidden="true">✺</span><figure class="polaroid main-photo">${images[0]?`<button class="photo-open" data-photo="${esc(images[0].image)}" data-alt="${esc(images[0].alt)}">${photo(images[0])}</button><figcaption>${esc(images[0].caption)}</figcaption>`:`<div class="paper-landscape" aria-hidden="true"><div class="sun"></div><div class="hill one"></div><div class="hill two"></div><span>YOUR WORLD, IN PICTURES</span></div><figcaption>a favourite moment goes here</figcaption>`}</figure><div class="postcard"><span>NOTE TO SELF</span><p>Make things.<br>Go places.<br>Stay curious.</p><span class="postmark" aria-hidden="true">✳</span></div><span class="sticker">always<br>becoming</span><span class="hand photo-note">a collection of little things ↗</span></div></section><section class="intro-strip"><span class="eyebrow">HELLO, YOU.</span><p>${esc(d.about)}</p><span class="doodle" aria-hidden="true">〰</span></section><section id="explore" class="explore"><div class="section-heading"><div><p class="eyebrow">PICK A PATH</p><h2>There’s more than one way in.</h2></div><span class="hand">follow your curiosity ↙</span></div><div class="room-grid">${[['projects','The workshop','Things I make','✳'],['writeups','The notebook','Thoughts I keep','✎'],['travel','The atlas','Places & little detours','◎'],['timeline','The winding path','Life as it happens','〰'],['organisations','In good company','Things built together','✷'],['education','Still learning','A curious mind at work','⌁'],['freelance','Let’s make something','Ideas welcome here','↗']].map(([id,label,sub,icon],i)=>`<a class="room room-${i}" href="${id}.html"><span class="room-number">0${i+1}</span><span class="room-icon" aria-hidden="true">${icon}</span><h3>${label}</h3><p>${sub}</p><span class="room-arrow">↗</span></a>`).join('')}</div></section>${images.length>1?`<section class="gallery"><h2>Small moments, kept.</h2><div class="gallery-grid">${images.slice(1).map(p=>`<figure><button class="photo-open" data-photo="${esc(p.image)}" data-alt="${esc(p.alt)}">${photo(p)}</button><figcaption>${esc(p.caption)}</figcaption></figure>`).join('')}</div></section>`:''}<section class="contact" id="contact"><span class="large-flower" aria-hidden="true">✳</span><div><p class="eyebrow">A SMALL HELLO CAN GO A LONG WAY</p><h2>Leave a little note.</h2><p>${d.email?'An idea, a question, or just a hello.':'Contact details and social links will find a home here soon.'}</p>${d.email?`<a class="button" href="mailto:${esc(d.email)}">Say hello ↗</a>`:''}<div class="socials">${visible(d.socials).map(s=>external(s.url,esc(s.title))).join('')}</div></div></section>`;
-}
-function contents(d,page) {
- const key=page==='freelance'?'services':page;
- const items=visible(d[key]);
- if(page==='projects') return `${filters(items)}<div class="project-grid filter-list">${items.map(p=>`<article data-category="${esc(p.category)}"><a class="project-card" href="projects/${p.slug}.html">${photo(p)}<div><span class="eyebrow">${esc(p.category)} · ${esc(p.status||'')}</span><h2>${esc(p.title)} ↗</h2><p>${esc(p.summary)}</p></div></a></article>`).join('')}</div>${!items.length?empty('A workshop with the lights on.','Projects will live here, from first experiments to things out in the world. No projects have been added yet.'):''}`;
- if(page==='organisations') return `<div class="organisation-list">${items.map((o,i)=>`<details><summary><span class="index">0${i+1}</span><span><small>${esc(o.period)} · ${esc(o.status)}</small><h2>${esc(o.title)}</h2><p>${esc(o.role)}</p></span><span class="expand">+</span></summary><div class="detail-body">${paragraphs(o.body)}${external(o.url,'Explore the organisation')}</div></details>`).join('')}</div>${!items.length?empty('Good things take people.','Ventures, communities and organisations will be collected here, with the story behind each role.','✷'):''}`;
- if(page==='writeups') return `<div class="writing-layout"><aside><span class="eyebrow">THE READING ROOM</span><p>Pull up a chair.<br>Stay for a thought.</p><span class="ink-star" aria-hidden="true">✳</span><label for="search">Find a writeup</label><input id="search" type="search" placeholder="Search the notebook…"></aside><div><div class="filter-list">${items.map(w=>`<article data-search="${esc(`${w.title} ${w.category} ${w.summary}`.toLowerCase())}"><a class="writing-row" href="writeups/${w.slug}.html"><span class="eyebrow">${esc(w.category)} / ${esc(w.date)}</span><h2>${esc(w.title)} <span>↗</span></h2><p>${esc(w.summary)}</p></a></article>`).join('')}</div><p id="no-results" hidden>No writeups match that search.</p>${!items.length?empty('The first page is still blank.','Essays, passing observations and longer explorations will appear here.','✎'):''}</div></div>`;
- if(page==='timeline') return `${filters(items)}<div class="timeline filter-list">${[...items].sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`<article data-category="${esc(t.category)}"><time datetime="${esc(t.date)}">${esc(t.date.slice(0,4))}</time><details><summary><span class="eyebrow">${esc(t.category)}</span><h2>${esc(t.title)} <span>+</span></h2></summary>${paragraphs(t.body)}</details></article>`).join('')}</div>${!items.length?empty('Every story starts somewhere.','Life, work, travels and milestones will share this winding path. Dates and chapters are waiting to be added.','〰'):''}`;
- if(page==='travel') return `<div class="atlas"><div class="atlas-top"><span class="eyebrow">THE WORLD, A PAGE AT A TIME</span><div class="map-controls"><button id="zoom-in" aria-label="Zoom map in">+</button><button id="zoom-out" aria-label="Zoom map out">−</button><button id="reset-map">Reset</button></div></div><svg id="world-map" viewBox="0 0 960 480" role="img" aria-label="World map. No visited places added yet."><defs><pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse"><path d="M 80 0 L 0 0 0 80" fill="none" stroke="#c3d6d0" stroke-width="1"/></pattern></defs><rect width="960" height="480" fill="url(#grid)"/><g id="map-land"></g></svg><div class="atlas-bottom"><span><i class="dot"></i> ${items.length?'Select a place to read its story':'A blank passport, for now'}</span><small>Map: Natural Earth · public domain</small></div></div><div class="travel-list">${items.map(t=>`<article id="place-${t.slug}"><a href="travel/${t.slug}.html">${photo(t)}<span class="eyebrow">${esc(t.country)} · ${esc(t.date)}</span><h2>${esc(t.title)} ↗</h2><p>${esc(t.summary)}</p></a></article>`).join('')}</div>${!items.length?empty('The stories come after the journey.','No destinations are marked yet. Photographs and travel journals will grow around the places you choose to share.','◎'):''}`;
- if(page==='freelance') return `<div class="freelance-layout"><div><p class="large-copy">Interesting work<br>starts with a<br><em>conversation.</em></p>${items.map(s=>`<details class="service"><summary>${esc(s.title)} <span>+</span></summary>${paragraphs(s.body)}${external(s.url,'See an example')}</details>`).join('')}${!items.length?'<p class="muted">Services and examples will be added here.</p>':''}</div><form id="inquiry" data-email="${esc(d.email)}"><span class="eyebrow">A NOTE ABOUT YOUR IDEA</span><h2>What’s on your mind?</h2><label for="sender">Your name</label><input id="sender" name="sender" required autocomplete="name"><label for="reply">Your email</label><input id="reply" name="reply" type="email" required autocomplete="email"><label for="idea">Tell me a little about it</label><textarea id="idea" name="idea" required rows="5" placeholder="The idea, the what-if, the thing you’d love to make…"></textarea><button class="button" type="submit">${d.email?'Open email draft ↗':'Prepare your note ↗'}</button><p class="form-note">${d.email?'Opens your email app. Nothing is sent automatically.':'Contact is not connected yet. You can prepare a note to save for later.'} Your entries stay in this page.</p><div id="inquiry-result" role="status" hidden><label for="prepared">Your prepared note</label><textarea id="prepared" rows="7" readonly></textarea></div></form></div>`;
- if(page==='education') return `<div class="education-intro"><span class="hand">learning never really ends</span><span aria-hidden="true">✎</span></div><div class="education-list">${items.map(e=>`<details><summary><span class="eyebrow">${esc(e.period)}</span><h2>${esc(e.title)}</h2><p>${esc(e.institution)} <span>+</span></p></summary><div class="detail-body">${paragraphs(e.body)}${e.indicators?.length?`<dl>${e.indicators.map(i=>`<dt>${esc(i.label)}</dt><dd>${esc(i.value)}</dd>`).join('')}</dl>`:''}${external(e.url,'View credential')}</div></details>`).join('')}</div>${!items.length?empty('A collection of discoveries.','Institutions, courses and academic accomplishments belong here. Only personally approved details and indicators will be shown.','✎'):''}`;
-}
-export async function build(input, output) {
- const d=input || JSON.parse(await readFile(path.join(root,'content/site.json'),'utf8')); validate(d);
- const dist=output || path.join(root,'dist'); await rm(dist,{recursive:true,force:true}); await mkdir(dist,{recursive:true});
- await cp(path.join(root,'assets'),path.join(dist,'assets'),{recursive:true});
- await writeFile(path.join(dist,'.nojekyll'),'');
- await writeFile(path.join(dist,'assets/travel.json'),JSON.stringify(visible(d.travel).map(({slug,title,lat,lon})=>({slug,title,lat,lon}))));
- for(const [page] of nav) {
-  const info=pageInfo[page];
-  const body=page==='index'?home(d):`<section class="page-heading"><p class="eyebrow">${info[0]}</p><h1>${info[1]}</h1><p class="lede">${info[2]}</p><span class="page-doodle" aria-hidden="true">${page==='travel'?'◎':page==='writeups'?'✎':'✳'}</span></section><section class="page-content">${contents(d,page)}</section>`;
-  await writeFile(path.join(dist,`${page}.html`),shell(d,page,body));
- }
- for(const type of ['projects','writeups','travel']) {
-  await mkdir(path.join(dist,type),{recursive:true});
-  for(const item of visible(d[type])) {
-   const body=`<article class="reader"><a class="text-link" href="../${type}.html">← Back to ${type}</a><p class="eyebrow">${esc(item.category||item.country||'')}${item.date?' / '+esc(item.date):''}</p><h1>${esc(item.title)}</h1><p class="lede">${esc(item.summary)}</p>${item.image?photo(item,'../'):''}<div class="prose">${paragraphs(item.body)}</div><div class="socials">${external(item.demo,'Open demo')}${external(item.repository,'View repository')}</div></article>`;
-   await writeFile(path.join(dist,type,`${item.slug}.html`),shell(d,type,body,'../',item.title));
-  }
- }
- // Relative links keep project sites and custom domains equally usable.
- await writeFile(path.join(dist,'404.html'),'<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Page not found</title><body style="font:20px Georgia;background:#f8f5ed;color:#273d35;padding:12vw"><h1>A small detour.</h1><p>This page has wandered off. Please use your browser’s Back button to return to the archive.</p></body></html>');
- console.log('Built 8 pages and approved detail pages in dist.');
-}
-if(process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) await build();
 
+export async function build(input, output) {
+  const d = input || JSON.parse(await readFile(path.join(root,'content/site.json'),'utf8'));
+  validate(d);
+  const dist = path.resolve(output || path.join(root,'dist'));
+  const isDefault = dist === path.resolve(root,'dist');
+  const isTest = path.dirname(dist) === path.resolve(os.tmpdir()) && path.basename(dist).startsWith('personal-home-test-');
+  const isFixture = dist === path.resolve(root,'../../work/interactive-preview');
+  if (!isDefault && !isTest && !isFixture) throw Error('Refusing to replace an output directory outside the approved build locations');
+  async function checkImages(item) {
+    if (!item || typeof item !== 'object') return;
+    if (item.image) await stat(path.join(root,item.image));
+    await Promise.all(Object.values(item).map(checkImages));
+  }
+  await checkImages({...d, ...Object.fromEntries(Object.entries(d).filter(([,v]) => Array.isArray(v)).map(([k,v]) => [k,k==='interests'?v:visible(v)]))});
+  await rm(dist,{recursive:true,force:true});
+  await mkdir(dist,{recursive:true});
+  await cp(path.join(root,'assets'),path.join(dist,'assets'),{recursive:true});
+  await writeFile(path.join(dist,'.nojekyll'),'');
+  await writeFile(path.join(dist,'assets/travel.json'),JSON.stringify(visible(d.travel).map(({slug,title,lat,lon,country,countryCode}) => ({slug,title,lat,lon,country,countryCode}))));
+  for (const [page] of nav) {
+    const info = pageInfo[page];
+    const body = page === 'index' ? home(d) : `<section class="page-heading"><div class="page-title"><p class="eyebrow">${info[3]} / ${info[0]}</p><h1>${info[1]}</h1><p class="lede">${info[2]}</p></div><div class="page-emblem" aria-hidden="true">${icon(page)}<span class="emblem-orbit"></span><span class="emblem-dot"></span></div></section><section class="page-content">${contents(d,page)}</section>`;
+    await writeFile(path.join(dist,`${page}.html`),shell(d,page,body));
+  }
+  for (const type of ['projects','writeups','travel','library']) {
+    await mkdir(path.join(dist,type),{recursive:true});
+    for (const item of visible(d[type])) await writeFile(path.join(dist,type,`${item.slug}.html`),shell(d,type,detail(item,type),'../',item.title));
+  }
+  await writeFile(path.join(dist,'404.html'),'<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Page not found</title><body style="font:20px Georgia;background:#f7f4ed;color:#273d35;padding:12vw"><h1>A small detour.</h1><p>This page has wandered off. Please use your browser’s Back button to return to the archive.</p></body></html>');
+  console.log('Built 9 pages and all published detail pages.');
+}
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await build();
