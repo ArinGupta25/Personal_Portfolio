@@ -16,7 +16,7 @@ Open http://127.0.0.1:4173. The build creates `dist/`; do not edit generated fil
 
 ## Content
 
-Edit `content/site.json`. Empty collections are intentional: the owner requested the base first and will supply personal information later. The introductory copy is proposed design copy, not a verified biography. No destinations, qualifications, project completion claims or private contact details have been added.
+Edit `content/site.json`. Project ATLAS is the first approved project. Other empty collections are intentional and await owner-supplied content. The introductory copy is proposed design copy, not a verified biography. No destinations, qualifications, project completion claims or private contact details have been added.
 
 Every collection item requires `published: true` to appear. This is an editorial inclusion flag, **not** access control: any content committed to a public repository is public, including items with `published: false`. Never commit private drafts, contact details or photos without permission.
 
@@ -80,3 +80,9 @@ Projects, writeups, travel journals and library reviews support the same optiona
 - `sources`: objects with `title`, HTTPS `url` and optional `annotation`.
 
 All body paragraphs and sections are rendered in full. A book's `body` and `sections` contain the owner's review. Published travel items require coordinates and `countryCode`; the map turns those countries green and connects each marker to its journal and photos. No countries are marked visited until approved travel entries exist.
+
+### Project case studies
+
+Project ATLAS is the first approved project entry. Its `caseStudy` object adds a goal, technology stack, dated milestones with evidence links, status facts, a code excerpt, scope boundaries and next steps to the reusable project layout. Copy is reviewed against GitHub; a successful branch check is distinct from a merged release. Milestone dates use Asia/Calcutta. Update `caseStudy.updated` and the status facts when reviewing progress.
+
+The ATLAS images in `assets/images/projects/atlas/` are original architecture/code illustrations, not screenshots or claimed experiment results. Its GitHub repository remains private; the public case study explains that access is required. The site's other eight sections remain available.
