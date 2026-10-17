@@ -1,10 +1,10 @@
 # Editing this personal home
 
-This represents the owner's life, curiosity, photos, writing, travel and work. Preserve all eight sections and the whimsical personal tone. Do not turn it into an online CV or make AI engineering the primary identity.
+This represents the owner's life, curiosity, photos, writing, travel and work. Preserve all nine sections, including My Library, and a formal, restrained visual design and a personal rather than recruitment-focused identity. Do not turn it into an online CV or make AI engineering the primary identity.
 
 Only add personal details approved for public use. Do not infer destinations, dates, qualifications, current positions or project completion. A draft flag does not hide content in a public repository. Never commit secrets, private photos or private biographical drafts.
 
-Edit content/site.json for content. Edit scripts/build.mjs and assets for templates and interactions. Do not edit dist. Keep relative paths compatible with GitHub Pages project URLs. Photos require alt text and public-use approval; remove metadata before publishing.
+Edit content/site.json for content, scripts/templates.mjs for layouts, scripts/build.mjs for validation and generation, and assets for styles and interactions. Do not edit dist. Keep relative paths compatible with GitHub Pages project URLs. Photos require alt text and public-use approval; remove metadata before publishing. Travel uses countryCode (ISO alpha-3) for green visited countries. Full entries accept body, sections, photos and sources; never truncate article content. Test fixtures are not the owner's real biography or reading/travel history and must stay out of published content.
 
 Run `node --test scripts/site.test.mjs` and `node scripts/build.mjs`. Verify changed interactions at desktop and mobile widths. Preserve keyboard access and reduced-motion behavior. Keep third-party services optional.
 
