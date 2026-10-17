@@ -32,6 +32,12 @@ export function validate(d) {
     Object.values(item).forEach(inspect);
   }
   inspect(d);
+  for (const p of d.projects) if (p.caseStudy) {
+    const c=p.caseStudy;
+    if (!p.image || !p.repository || !c.goal || !c.code?.text || !c.headings) throw Error('Project case study requires an image, repository, goal, headings and code');
+    for (const field of ['stack','facts','milestones','next']) if (!Array.isArray(c[field])) throw Error(`Project case study ${field} must be an array`);
+    for (const date of [c.updated,...c.milestones.map(m=>m.date)]) if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) throw Error('Project case study dates must be ISO');
+  }
   for (const t of d.travel) {
     if (!Number.isFinite(t.lat) || !Number.isFinite(t.lon) || Math.abs(t.lat)>90 || Math.abs(t.lon)>180) throw Error('Invalid coordinates');
     if (!/^[A-Z]{3}$/.test(t.countryCode || '')) throw Error('Travel needs an ISO alpha-3 countryCode');

@@ -8,7 +8,145 @@
   "socials": [],
   "interests": [],
   "photos": [],
-  "projects": [],
+  "projects": [
+    {
+      "published": true,
+      "slug": "project-atlas",
+      "title": "Project ATLAS",
+      "category": "AI & research systems",
+      "status": "In development",
+      "date": "2026-10-18",
+      "summary": "Building an evidence-grounded research workspace: from a research question to inspectable sources, reproducible experiments and carefully qualified conclusions.",
+      "image": "assets/images/projects/atlas/atlas-system.png",
+      "alt": "ATLAS system diagram: research brief, source library and cited records, with later research stages marked as roadmap work.",
+      "repository": "https://github.com/ArinGupta25/atlas-research-scientist",
+      "body": "ATLAS is my ongoing project to make AI-assisted research inspectable. The aim is to preserve the reasoning, source material and experimental record behind a conclusion, so the work can be examined and reproduced.\n\nThe foundation supports durable research briefs and a responsive workspace. The next branch adds a literature library, original PDF preservation, page-level text, exact passage search and optional structured paper records. The broader autonomous research loop is still being built.",
+      "caseStudy": {
+        "label": "Research systems / 001",
+        "subtitle": "Research, with an inspectable trail.",
+        "updated": "2026-10-18",
+        "goal": "Connect a research question to literature, structured evidence, falsifiable hypotheses and reproducible experiments—then produce conclusions that expose their evidence, uncertainty and limitations.",
+        "stack": [
+          "Next.js",
+          "TypeScript",
+          "FastAPI",
+          "Python",
+          "PostgreSQL / SQLite",
+          "OpenAI Responses API"
+        ],
+        "repositoryNote": "Private repository · GitHub access is required to view source and engineering records.",
+        "milestones": [
+          {
+            "date": "2026-10-01",
+            "label": "01 Oct 2026",
+            "title": "Foundation implementation opened for review",
+            "status": "Implemented",
+            "body": "Established the full research-brief form, project API, database persistence, creation-event records, migration packaging and a typed model-provider boundary. The Next.js workspace connects to the FastAPI backend.",
+            "url": "https://github.com/ArinGupta25/atlas-research-scientist/pull/1"
+          },
+          {
+            "date": "2026-10-02",
+            "label": "02 Oct 2026",
+            "title": "M0 foundation verified and merged",
+            "status": "Merged",
+            "body": "The final foundation checks passed: 52 backend tests including PostgreSQL, four Chromium browser tests, frontend checks and a full container round trip. The project creation and inspection foundation was merged into main.",
+            "url": "https://github.com/ArinGupta25/atlas-research-scientist/pull/1"
+          },
+          {
+            "date": "2026-10-12",
+            "label": "12 Oct 2026",
+            "title": "M1 literature library committed",
+            "status": "Draft PR",
+            "body": "Added reference registration, Crossref metadata discovery, bounded PDF ingestion, SHA-256 identity, immutable page text, exact passage search and optional paper-record extraction. Exact citations retain their page and character spans; model statements remain UNVERIFIED.",
+            "url": "https://github.com/ArinGupta25/atlas-research-scientist/pull/4"
+          },
+          {
+            "date": "2026-10-12",
+            "label": "12 Oct 2026",
+            "title": "M1 hosted engineering checks passed",
+            "status": "Checks passed",
+            "body": "GitHub Actions passed backend lint, types and tests, frontend build and browser tests, and container checks including source-file persistence after API recreation. PR #4 remains a draft and has not been merged. Passing engineering checks does not establish scientific validity or live model quality.",
+            "url": "https://github.com/ArinGupta25/atlas-research-scientist/actions/runs/38169100456"
+          }
+        ],
+        "code": {
+          "title": "Keep candidate statements explicitly unverified",
+          "path": "src/atlas/paper_records.py",
+          "language": "Python",
+          "text": "class GroundedStatement(BaseModel):\n    model_config = ConfigDict(extra=\"forbid\")\n\n    text: StatementText\n    citations: list[PageCitation] = Field(\n        min_length=1, max_length=MAX_CITATIONS_PER_STATEMENT\n    )\n    verification_status: Literal[\"UNVERIFIED\"] = \"UNVERIFIED\"",
+          "url": "https://github.com/ArinGupta25/atlas-research-scientist/blob/2e758c173b181c00a9c28d52ead8ac424eee0cbf/src/atlas/paper_records.py",
+          "note": "Excerpt from the M1 branch; line breaks adjusted for readability. The schema requires citations and an explicit UNVERIFIED status. Separate validation checks quotations against stored page text."
+        },
+        "next": [
+          "Review and merge the M1 literature-library milestone.",
+          "Build the evidence graph: claims, evidence spans, support, contradiction and qualification.",
+          "Add research planning, falsifiable hypotheses and versioned experiments.",
+          "Develop statistical analysis, a research critic and a controlled iteration loop."
+        ],
+        "limits": "No live model inference or research experiment has been validated. Current text retrieval is literal, not semantic ranking. OCR, automated experiments, statistical analysis and report generation remain future work. Saved budget fields are planning metadata, not enforced spending limits.",
+        "facts": [
+          {
+            "label": "Foundation",
+            "value": "M0 merged"
+          },
+          {
+            "label": "Literature library",
+            "value": "M1 checks passed · draft PR"
+          }
+        ],
+        "headings": {
+          "purpose": "Make the path to a conclusion inspectable.",
+          "development": "From foundation to literature.",
+          "implementation": "A durable foundation. A traceable library.",
+          "next": "Building toward the research loop."
+        }
+      },
+      "sections": [
+        {
+          "heading": "What the foundation makes possible",
+          "body": "A research brief stores the question, domain, constraints, datasets, budget, depth, methodology, exclusions and intended deliverable. Projects can be reopened after reload, with durable creation events and versioned database migrations.",
+          "bullets": [
+            "Responsive project creation and inspection in Next.js and TypeScript.",
+            "FastAPI contracts backed by SQLite for local work and PostgreSQL for container deployment.",
+            "A typed provider boundary with explicitly configured model tiers and offline error-path tests."
+          ]
+        },
+        {
+          "heading": "How the literature library works",
+          "body": "The M1 branch preserves original PDF bytes and a server-computed SHA-256 hash. Extracted page text becomes the coordinate system for exact citations. A reader can search a phrase, inspect the matching page and trace a candidate statement back to a quotation.",
+          "bullets": [
+            "Crossref imports bibliographic metadata; it does not automatically download papers.",
+            "PDF processing has explicit size, page, text and timeout limits, plus states for scans and failures.",
+            "Optional extraction records attempts and supplied usage, rejects mismatched quotations and avoids duplicate calls for a reused request identifier."
+          ]
+        }
+      ],
+      "photos": [
+        {
+          "image": "assets/images/projects/atlas/atlas-provenance.png",
+          "alt": "Code illustration of the GroundedStatement schema requiring citations and an UNVERIFIED status.",
+          "caption": "M1 provenance design. This is a code illustration, not an application screenshot or research result."
+        }
+      ],
+      "sources": [
+        {
+          "title": "M0 foundation — merged PR #1",
+          "url": "https://github.com/ArinGupta25/atlas-research-scientist/pull/1",
+          "annotation": "Implementation and foundation acceptance evidence. Private repository access required."
+        },
+        {
+          "title": "M1 literature library — draft PR #4",
+          "url": "https://github.com/ArinGupta25/atlas-research-scientist/pull/4",
+          "annotation": "Current implementation branch; still unmerged as of 18 October 2026."
+        },
+        {
+          "title": "M1 successful hosted checks",
+          "url": "https://github.com/ArinGupta25/atlas-research-scientist/actions/runs/38169100456",
+          "annotation": "Backend, frontend/browser and container jobs succeeded. Run 38169100456."
+        }
+      ]
+    }
+  ],
   "organisations": [],
   "writeups": [],
   "library": [],
