@@ -1,0 +1,7 @@
+{
+  "name": "personal-digital-home",
+  "private": true,
+  "type": "module",
+  "scripts": {"build": "node scripts/build.mjs", "test": "node --test scripts/site.test.mjs", "start": "node scripts/serve.mjs"},
+  "engines": {"node": ">=22"}
+}
