@@ -145,6 +145,135 @@
           "annotation": "Backend, frontend/browser and container jobs succeeded. Run 38169100456."
         }
       ]
+    },
+    {
+      "published": true,
+      "slug": "daymark-local",
+      "title": "Daymark Local",
+      "category": "Personal productivity",
+      "status": "Built · evolving",
+      "date": "2026-10-18",
+      "summary": "A local-first Windows planner, habit tracker and learning journal that connects daily intentions with a detailed record of what actually happened.",
+      "repository": "https://github.com/ArinGupta25/daymark-local",
+      "image": "assets/images/projects/daymark/daymark-system.png",
+      "alt": "Daymark architecture: plan and record in the browser, persist in local SQLite, and optionally sync commitments and reports to Google.",
+      "body": "Daymark brings planning, habits and learning notes into one workspace on a Windows PC. It records what was read, learned or done alongside time spent, so progress has context beyond a completed checkbox.\n\nThe app works locally without a cloud database. An optional Google connection sends commitments to Calendar and generates progress reports in Sheets. Personal records remain separate from the source repository.",
+      "caseStudy": {
+        "label": "Personal software / 002",
+        "subtitle": "Plan the day. Keep the story.",
+        "updated": "2026-10-18",
+        "goal": "Build a practical personal workspace that joins daily planning, consistent habits, focused learning and reflection, while keeping the primary record on the user’s own computer.",
+        "stack": [
+          "Node.js 24",
+          "SQLite",
+          "JavaScript",
+          "HTML / CSS",
+          "Windows",
+          "Google Calendar & Sheets"
+        ],
+        "repositoryNote": "Private repository · GitHub access is required. Daymark runs locally; this page is a project overview, not the application.",
+        "facts": [
+          {
+            "label": "Application",
+            "value": "Windows · local-first"
+          },
+          {
+            "label": "Latest milestone",
+            "value": "Version 2 implemented"
+          }
+        ],
+        "headings": {
+          "purpose": "Give daily progress context.",
+          "development": "From a daily journal to a connected workspace.",
+          "implementation": "Local by default. Connected by choice.",
+          "next": "Keep the daily workflow dependable."
+        },
+        "milestones": [
+          {
+            "date": "2026-10-06",
+            "label": "06 Oct 2026 · 06:17 IST",
+            "title": "Core planner and journal committed",
+            "status": "Implemented",
+            "body": "Built the local SQLite-backed planner, habit goals and streaks, detailed activity notes, Windows launcher, Calendar integration and Sheets reporting. The source commit includes 17 automated checks and excludes personal data and credentials.",
+            "url": "https://github.com/ArinGupta25/daymark-local/commit/bc74e2fab816feed6b96cd980fdf438ca87fa6e3"
+          },
+          {
+            "date": "2026-10-06",
+            "label": "06 Oct 2026 · 14:46 IST",
+            "title": "Version 2 planning and reflection tools added",
+            "status": "Implemented",
+            "body": "Added drag-and-drop planning, reusable routines, flexible habit schedules, focus and Pomodoro sessions, skill milestones, sleep and wellbeing check-ins, weekly reflections, reminders and backup restore. The build record documents preservation of existing records through migration.",
+            "url": "https://github.com/ArinGupta25/daymark-local/commit/1ebb3f49e1b86b7d261a19feffc4d21d3cd184b7"
+          },
+          {
+            "date": "2026-10-06",
+            "label": "06 Oct 2026",
+            "title": "Visual reporting and verification recorded",
+            "status": "Checks passed",
+            "body": "The build record reports 29 passing automated checks, isolated desktop/mobile browser workflows and a successful live Sheets dashboard sync. Reporting includes four dashboards, 12 native charts and a habit heatmap. The Windows GitHub Actions run also passed. These are dated verification results, not a claim about the current Google connection.",
+            "url": "https://github.com/ArinGupta25/daymark-local/actions/runs/37441833131"
+          }
+        ],
+        "code": {
+          "title": "Commit local changes atomically",
+          "path": "lib/store.mjs",
+          "language": "JavaScript",
+          "text": "update(fn) {\n  db.exec(\"BEGIN IMMEDIATE\");\n  try {\n    const s = this.read();\n    fn(s);\n    s.revision++;\n    db.prepare(\"UPDATE state SET value=? WHERE id=1\")\n      .run(JSON.stringify(s));\n    db.exec(\"COMMIT\");\n    return s;\n  } catch (e) {\n    db.exec(\"ROLLBACK\");\n    throw e;\n  }\n}",
+          "url": "https://github.com/ArinGupta25/daymark-local/blob/1ebb3f49e1b86b7d261a19feffc4d21d3cd184b7/lib/store.mjs",
+          "note": "Excerpt from the local state store, formatted for readability. A transaction commits the updated state and revision together, or rolls back when an operation fails.",
+          "principle": "Local state commits first. Optional sync follows."
+        },
+        "next": [
+          "Keep using and refining the daily planning and journal workflows.",
+          "Recheck Google connectivity when credentials expire or integrations change.",
+          "Consider incremental exports if the journal outgrows full reporting snapshots."
+        ],
+        "limits": "Daymark is built for one Windows PC. Local reminders require the app to be running and the PC awake. Sheets is a reporting destination, not a two-way editor. Calendar changes made remotely are not merged back into local records. The build record does not independently verify a live Calendar create/edit/delete round trip or visible Windows notification delivery."
+      },
+      "sections": [
+        {
+          "heading": "A daily plan with a meaningful journal",
+          "body": "Plan commitments on a 24-hour timeline, schedule habits and apply reusable routines. Record minutes and notes about the activity, then review daily, weekly and monthly progress.",
+          "bullets": [
+            "Flexible weekday schedules, historical targets, pauses and streak rules.",
+            "Persistent focus and Pomodoro sessions with confirmed logging; breaks do not count as work.",
+            "Skill outcomes and resource links, sleep and mood check-ins, and weekly reflections."
+          ]
+        },
+        {
+          "heading": "Storage, recovery and optional reporting",
+          "body": "A Node.js server binds to the local machine and stores the primary record in SQLite. Credentials are separate, and Windows protects the Google credential file with DPAPI. Backups and restore support recovery without including credentials in JSON exports.",
+          "bullets": [
+            "Local-first operation with a Windows launcher and no runtime npm dependencies.",
+            "Google desktop OAuth with PKCE; queued changes retry while the app runs.",
+            "Calendar commitments and app-managed Sheets dashboards; personal data is excluded from GitHub."
+          ]
+        }
+      ],
+      "photos": [
+        {
+          "image": "assets/images/projects/daymark/daymark-sync.png",
+          "alt": "Daymark sync diagram showing a local commit followed by serialized sync, Calendar commitments and Sheets reports, with failures kept for retry.",
+          "caption": "Sync architecture illustration. No personal events, journal entries or account information are shown."
+        }
+      ],
+      "sources": [
+        {
+          "title": "Initial Daymark implementation",
+          "url": "https://github.com/ArinGupta25/daymark-local/commit/bc74e2fab816feed6b96cd980fdf438ca87fa6e3",
+          "annotation": "Core planner, habit journal, launcher and Google sync. Private repository access required."
+        },
+        {
+          "title": "Version 2 source and build record",
+          "url": "https://github.com/ArinGupta25/daymark-local/blob/1ebb3f49e1b86b7d261a19feffc4d21d3cd184b7/BUILD.md",
+          "annotation": "Dated implementation and verification record, including integration limits."
+        },
+        {
+          "title": "Successful Windows checks",
+          "url": "https://github.com/ArinGupta25/daymark-local/actions/runs/37441833131",
+          "annotation": "Hosted checks for the version 2 source commit."
+        }
+      ]
     }
   ],
   "organisations": [],
