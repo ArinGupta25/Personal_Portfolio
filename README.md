@@ -16,7 +16,7 @@ Open http://127.0.0.1:4173. The build creates `dist/`; do not edit generated fil
 
 ## Content
 
-Edit `content/site.json`. Project ATLAS is the first approved project. Other empty collections are intentional and await owner-supplied content. The introductory copy is proposed design copy, not a verified biography. No destinations, qualifications, project completion claims or private contact details have been added.
+Edit `content/site.json`. Project ATLAS and Daymark Local are approved project entries. Other empty collections are intentional and await owner-supplied content. The introductory copy is proposed design copy, not a verified biography. No destinations, qualifications, project completion claims or private contact details have been added.
 
 Every collection item requires `published: true` to appear. This is an editorial inclusion flag, **not** access control: any content committed to a public repository is public, including items with `published: false`. Never commit private drafts, contact details or photos without permission.
 
