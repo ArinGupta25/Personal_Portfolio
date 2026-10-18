@@ -86,3 +86,13 @@ All body paragraphs and sections are rendered in full. A book's `body` and `sect
 Project ATLAS is the first approved project entry. Its `caseStudy` object adds a goal, technology stack, dated milestones with evidence links, status facts, a code excerpt, scope boundaries and next steps to the reusable project layout. Copy is reviewed against GitHub; a successful branch check is distinct from a merged release. Milestone dates use Asia/Calcutta. Update `caseStudy.updated` and the status facts when reviewing progress.
 
 The ATLAS images in `assets/images/projects/atlas/` are original architecture/code illustrations, not screenshots or claimed experiment results. Its GitHub repository remains private; the public case study explains that access is required. The site's other eight sections remain available.
+
+## Library content
+
+The library contains 170 completed reading-list entries imported from `Books till now.xlsx`, plus one separately marked current read. Repeated CSV headers were discarded; every title, section and numeric rating was reconciled against the source. The damaged encoding in Diper Överlöde was repaired. No reading dates were inferred.
+
+Edit the `library` array in `content/site.json`. Each book has its own slug and generated page. `status` is `read` or `reading`; omit `rating` for unfinished books. Ratings 1–5 use the ordinary star treatment; **7 means exceptional**, not 7/5 or a seven-point scale. Search, section, rating, sort and cover/list controls compose on the client. All entries and detail links remain available without JavaScript.
+
+`summary` contains a neutral synopsis, `authorNote` a short author introduction, and `sources` the supporting references and cover credit. Add `personalReview` only when Arin supplies his own reflections. Full `body`, `sections`, `photos` and references are supported as before. Covers live in `assets/images/books/` as compact metadata-free WebP thumbnails. The displayed edition may differ from the edition read. Missing or uncertain covers use an explicitly labelled typographic treatment.
+
+Research clarified Peter Casey for The Story of Tata, Karan Mehrishi as editor of India in 2050, and Vasugupta as the traditional attribution of Shiva Sutras. The latter's translator/edition remains unspecified. The Penguin is intentionally unidentified at the owner's request; do not assign a guessed author or synopsis. Preserve user-supplied sections even when a book could fit a different classification.

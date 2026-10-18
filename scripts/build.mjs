@@ -27,7 +27,7 @@ export function validate(d) {
     }
     if (item.image && (!/^assets\/images\/[\w./-]+\.(?:png|jpe?g|webp|avif)$/i.test(item.image) || item.image.includes('..'))) throw Error('Images must be local raster files in assets/images');
     if (item.image && !item.alt?.trim()) throw Error('Images need alt text');
-    if (item.rating !== undefined && (!Number.isFinite(item.rating) || item.rating < 0 || item.rating > 5)) throw Error('Rating must be between 0 and 5');
+    if (item.rating !== undefined && (!Number.isFinite(item.rating) || item.rating < 0 || (item.rating > 5 && item.rating !== 7))) throw Error('Rating must be between 0 and 5, or 7 for exceptional books');
     for (const key of ['photos','sections','sources','bullets','indicators']) if (item[key] !== undefined && !Array.isArray(item[key])) throw Error(`${key} must be an array`);
     Object.values(item).forEach(inspect);
   }

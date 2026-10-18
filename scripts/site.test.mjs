@@ -42,3 +42,17 @@ test('country map has unique country identifiers and real polygons',async()=>{
  const codes=map.features.map(f=>f.properties.code);assert.equal(new Set(codes).size,codes.length);assert.ok(codes.includes('NLD'));assert.ok(codes.includes('IND'));assert.ok(map.features.length>150);
 });
 
+
+test('library keeps personal ratings separate from researched summaries',async()=>{
+ const {libraryShelf,libraryDetail}=await import('./library.mjs');
+ const read=data.library.filter(b=>b.status==='read');
+ assert.equal(read.length,170);assert.equal(data.library.filter(b=>b.status==='reading').length,1);
+ assert.equal(read.filter(b=>b.rating===7).length,7);
+ for(const b of read){assert.ok([1,2,3,4,5,7].includes(b.rating));assert.ok(b.summary.length>60);assert.ok(b.authorNote);if(!b.identityUnconfirmed)assert.ok(b.sources.length>0);}
+ const exceptional=read.find(b=>b.rating===7);const page=libraryDetail(exceptional);
+ assert.match(page,/7 stars · Exceptional/);assert.doesNotMatch(page,/7 \/ 5/);assert.match(page,/Book summary/);assert.doesNotMatch(page,/My reflections/);
+ const reading=libraryDetail(data.library.find(b=>b.status==='reading'));assert.match(reading,/not yet rated/);assert.doesNotMatch(reading,/rating-standard/);
+ const shelf=libraryShelf(data.library);assert.equal((shelf.match(/class="book-entry /g)||[]).length,170);
+ for(const id of ['collection-search','section-filter','rating-filter','book-sort'])assert.ok(shelf.includes(`id="${id}"`));
+ assert.equal(new Set(read.map(b=>b.slug)).size,170);
+});

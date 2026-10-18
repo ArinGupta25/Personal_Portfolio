@@ -60,14 +60,17 @@ $$('button[data-overview]').forEach(button => button.addEventListener('click', (
 // Search and category filters compose, rather than resetting one another.
 let activeCategory = 'all';
 function filterCollection() {
-  const query = $('#collection-search')?.value.trim().toLowerCase() || '';
+  const query = ($('#collection-search')?.value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+  const category = $('#section-filter')?.value || activeCategory;
+  const rating = $('#rating-filter')?.value || 'all';
   let count = 0;
   $$('[data-category]').forEach(item => {
-    const matches = (activeCategory === 'all' || item.dataset.category === activeCategory) && (!query || (item.dataset.search || item.textContent.toLowerCase()).includes(query));
+    const matches = (category === 'all' || item.dataset.category === category) && (rating === 'all' || item.dataset.rating === rating) && (!query || (item.dataset.search || item.textContent.toLowerCase()).includes(query));
     item.hidden = !matches;
     if (matches) { count++; item.classList.remove('is-waiting'); }
   });
-  if ($('#no-results')) $('#no-results').hidden = count > 0 || (query === '' && activeCategory === 'all');
+  if ($('#no-results')) $('#no-results').hidden = count > 0;
+  if ($('#book-count')) $('#book-count').textContent = `${count} of ${$$('.book-entry').length} books`;
   updateScroll();
 }
 $$('[data-filter]').forEach(button => button.addEventListener('click', () => {
@@ -131,3 +134,14 @@ $('#copy-note')?.addEventListener('click', async event => {
 
 // Map loading cannot prevent navigation, filters or the other interactions working.
 if ($('#world-map')) import('./map.js').then(module => module.initMap()).catch(() => { $('#map-error').hidden = false; });
+
+// Library controls combine without changing another collection's filters.
+['section-filter','rating-filter'].forEach(id => document.getElementById(id)?.addEventListener('change',filterCollection));
+$('#clear-library')?.addEventListener('click',()=>{
+ $('#collection-search').value=''; $('#section-filter').value='all'; $('#rating-filter').value='all'; filterCollection();
+});
+$('#book-sort')?.addEventListener('change',event=>{
+ const mode=event.target.value;const cards=$$('.book-entry');
+ cards.sort((a,b)=>mode==='rating'?Number(b.dataset.rating)-Number(a.dataset.rating)||Number(a.dataset.order)-Number(b.dataset.order):mode==='original'?Number(a.dataset.order)-Number(b.dataset.order):a.dataset[mode].localeCompare(b.dataset[mode]));
+ cards.forEach(card=>$('#book-collection').append(card));updateScroll();
+});
